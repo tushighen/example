@@ -17,17 +17,13 @@ import java.util.List;
 public class User implements IGeneralDTO {
 
     @Id
-    @SequenceGenerator(name = "userSeq", sequenceName = "USER_SEQ", allocationSize = 1, initialValue = 1)
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "userSeq")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "ID")
     private Integer id;
 
-    @Size(min = 4, max = 255, message = "Minimum username length: 4 characters")
+    @Size(min = 4, max = 255)
     @Column(unique = true, nullable = false, name = "USERNAME")
     private String username;
-
-    @Column(nullable = false, name = "NAME")
-    private String name;
 
     @Column(unique = true, nullable = false, name = "EMAIL")
     private String email;
@@ -63,14 +59,6 @@ public class User implements IGeneralDTO {
 
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getEmail() {

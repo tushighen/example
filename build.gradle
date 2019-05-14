@@ -25,7 +25,7 @@ repositories {
 dependencies {
     implementation('org.springframework.boot:spring-boot-starter-data-jpa')
     implementation('org.springframework.boot:spring-boot-starter-jdbc')
-    compile('com.oracle:ojdbc7:12.1.0.1')
+//    compile('com.oracle:ojdbc7:12.1.0.1')
     compile('org.apache.poi:poi:3.17')
     compile('org.apache.poi:poi-ooxml:3.17')
     compile('org.apache.poi:poi-ooxml-schemas:3.17')
@@ -41,7 +41,9 @@ dependencies {
     compile('org.springframework.plugin:spring-plugin-core:1.2.0.RELEASE')
     compile('log4j:log4j:1.2.16')
     compile('org.json:json:20180813')
+    compile('mysql:mysql-connector-java:5.1.6')
     implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.jboss.resteasy:resteasy-client:3.6.2.Final')
     runtimeOnly('org.springframework.boot:spring-boot-devtools')
     compileOnly('org.projectlombok:lombok')
     providedRuntime('org.springframework.boot:spring-boot-starter-tomcat')

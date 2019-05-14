@@ -7,7 +7,7 @@ import io.swagger.annotations.ApiModelProperty;
  * Login DTO @author Tushig
  */
 
-public class LoginDTO implements IGeneralDTO{
+public class LoginDTO implements IGeneralDTO {
 
     @ApiModelProperty()
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -17,7 +17,9 @@ public class LoginDTO implements IGeneralDTO{
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Object user;
 
-    /** Constructor **/
+    /**
+     * Constructor
+     **/
 
     public LoginDTO() {
         super();
@@ -32,7 +34,9 @@ public class LoginDTO implements IGeneralDTO{
         this.user = user;
     }
 
-    /** Getter.Setter **/
+    /**
+     * Getter.Setter
+     **/
 
     public String getToken() {
         return token;

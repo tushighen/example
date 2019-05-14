@@ -14,7 +14,9 @@ public class ResponseDTO implements IGeneralDTO {
     @ApiModelProperty(position = 1)
     private BodyDTO body;
 
-    /** Constructor **/
+    /**
+     * Constructor
+     **/
 
     public ResponseDTO() {
         super();
@@ -29,7 +31,9 @@ public class ResponseDTO implements IGeneralDTO {
         this.body = body;
     }
 
-    /** Getter.Setter **/
+    /**
+     * Getter.Setter
+     **/
 
     public HeaderDTO getHeader() {
         return header != null ? this.header : (this.header = new HeaderDTO());

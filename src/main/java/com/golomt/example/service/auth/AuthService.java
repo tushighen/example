@@ -4,17 +4,13 @@ import com.golomt.example.constant.Constants;
 import com.golomt.example.dto.ErrorDTO;
 import com.golomt.example.dto.LoginDTO;
 import com.golomt.example.dto.ResponseDTO;
-import com.golomt.example.dto.UserResponseDTO;
 import com.golomt.example.entity.User;
-import com.golomt.example.exception.CustomException;
-import com.golomt.example.exception.NotFoundException;
-import com.golomt.example.exception.ValidationException;
+import com.golomt.example.exception.*;
 import com.golomt.example.repository.UserRepository;
 import com.golomt.example.security.JwtTokenProvider;
 import com.golomt.example.service.utilities.ResponseService;
 import com.golomt.example.service.utilities.ValidationService;
 import com.golomt.example.utilities.LogUtilities;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -51,41 +47,34 @@ public class AuthService implements Constants {
     ValidationService validationService;
 
     /**
-     * Mapper
-     **/
-
-    private ModelMapper modelMapper;
-
-    /**
-     * DTO
-     **/
-
-    private LoginDTO loginDTO;
-
-    private ErrorDTO errorDTO;
-
-    /**
      * do.Login
      **/
 
-    public ResponseDTO doLogin(String userName, String password) throws ValidationException, NotFoundException {
-        LogUtilities.info(this.getClass().getName(), "[srvc][auth][login][ini][" + userName.toUpperCase() + "]");
+    public ResponseDTO doLogin(String username, String password) throws ValidationException, NotFoundException, RestrictionException {
         try {
+            LogUtilities.info(this.getClass().getName(), "[srvc][auth][login][ini][" + username + "]");
+
             if (validationService.doValidatePassword(password)) {
-                if (userRepository.existsByUsername(userName)) {
-                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userName, password));
-                    return this.doGenerate(userName);
+                if (userRepository.existsByUsername(username)) {
+                    if (authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password)).isAuthenticated())
+                        return this.doGenerate(username);
+                    else {
+                        throw new RestrictionException("username or password doesnt match");
+                    }
                 } else {
-                    throw new NotFoundException("user.not.found");
+                    throw new NotFoundException("user not found");
                 }
             } else {
-                throw new ValidationException("password.length.doesnt.match");
+                throw new ValidationException("password length doesnt match");
             }
         } catch (ValidationException ex) {
             LogUtilities.warn(this.getClass().getName(), "[srvc][auth][login][validation][" + ex.getMessage() + "]");
             throw ex;
         } catch (NotFoundException ex) {
             LogUtilities.warn(this.getClass().getName(), "[srvc][auth][login][not.found][" + ex.getMessage() + "]");
+            throw ex;
+        } catch (RestrictionException ex) {
+            LogUtilities.warn(this.getClass().getName(), "[srvc][auth][login][restriction][" + ex.getMessage() + "]");
             throw ex;
         } catch (Exception ex) {
             LogUtilities.fatal(this.getClass().getName(), "[srvc][auth][login][unknown][" + ex.getMessage() + "]", ex);
@@ -97,29 +86,50 @@ public class AuthService implements Constants {
      * do.Refresh
      **/
 
-    public ResponseDTO doRefresh(HttpServletRequest req) {
-        LogUtilities.info(this.getClass().getName(), "[srvc][auth][refresh][ini][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
-        String token = jwtTokenProvider.createToken(req.getRemoteUser(), userRepository.findByUsername(req.getRemoteUser()).getRoles());
-        this.doValueClean();
-        this.getLoginDTO().setToken(token);
-        this.getLoginDTO().setUser(this.getModelMapper().map(userRepository.findByUsername(req.getRemoteUser()), UserResponseDTO.class));
-        LogUtilities.info(this.getClass().getName(), "[srvc][auth][refresh][end][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
-        return new ResponseService(HttpStatus.OK.value(), null, this.getLoginDTO()).getResponse();
+    public ResponseDTO doRefresh(HttpServletRequest req) throws NotFoundException {
+        try {
+            LogUtilities.info(this.getClass().getName(), "[srvc][auth][refresh][ini][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
+
+            if (userRepository.existsByUsername(req.getRemoteUser())) {
+                String token = jwtTokenProvider.createToken(req.getRemoteUser(), userRepository.findByUsername(req.getRemoteUser()).getRoles());
+
+                LogUtilities.info(this.getClass().getName(), "[srvc][auth][refresh][end][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
+
+                return new ResponseService(HttpStatus.OK.value(), null, new LoginDTO(token, userRepository.findByUsername(req.getRemoteUser()))).getResponse();
+            } else {
+                throw new NotFoundException("user not found");
+            }
+        } catch (NotFoundException ex) {
+            LogUtilities.fatal(this.getClass().getName(), "[srvc][auth][refresh][not.found][" + ex.getMessage() + "]", ex);
+            throw ex;
+        } catch (Exception ex) {
+            LogUtilities.fatal(this.getClass().getName(), "[srvc][auth][refresh][unknown][" + ex.getMessage() + "]", ex);
+            throw ex;
+        }
     }
 
     /**
      * do.Check.Who.Am.I
      **/
 
-    public ResponseDTO doCheckWhoAmI(HttpServletRequest req) {
-        LogUtilities.info(this.getClass().getName(), "[srvc][auth][who.am.i][ini][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
-        User user = userRepository.findByUsername(req.getRemoteUser());
-        if (user != null) {
-            LogUtilities.info(this.getClass().getName(), "[srvc][auth][who.am.i][end][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
-            return new ResponseService(HttpStatus.OK.value(), null, this.getModelMapper().map(user, UserResponseDTO.class)).getResponse();
-        } else {
-            LogUtilities.info(this.getClass().getName(), "[srvc][auth][who.am.i][end][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
-            return new ResponseService(HttpStatus.NOT_FOUND.value(), null, new ErrorDTO(null, Desc.USER_NOT_FOUND)).getError();
+    public ResponseDTO doCheckWhoAmI(HttpServletRequest req) throws NotFoundException {
+        try {
+            LogUtilities.info(this.getClass().getName(), "[srvc][auth][who.am.i][ini][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
+
+            if (userRepository.existsByUsername(req.getRemoteUser())) {
+
+                LogUtilities.info(this.getClass().getName(), "[srvc][auth][who.am.i][end][" + req.getRemoteUser() + "][" + jwtTokenProvider.resolveToken(req) + "]");
+
+                return new ResponseService(HttpStatus.OK.value(), null, userRepository.findByUsername(req.getRemoteUser())).getResponse();
+            } else {
+                throw new NotFoundException("user not found");
+            }
+        } catch (NotFoundException ex) {
+            LogUtilities.fatal(this.getClass().getName(), "[srvc][auth][who.am.i][not.found][" + ex.getMessage() + "]", ex);
+            throw ex;
+        } catch (Exception ex) {
+            LogUtilities.fatal(this.getClass().getName(), "[srvc][auth][who.am.i][unknown][" + ex.getMessage() + "]", ex);
+            throw ex;
         }
     }
 
@@ -150,62 +160,16 @@ public class AuthService implements Constants {
      * do.Generate.Token
      **/
 
-    private ResponseDTO doGenerate(String userName) {
-        User user = userRepository.findByUsername(userName);
-        String token = jwtTokenProvider.createToken(userName, user.getRoles());
-        this.doValueClean();
-        this.getLoginDTO().setToken(token);
-        this.getLoginDTO().setUser(this.getModelMapper().map(userRepository.findByUsername(userName), UserResponseDTO.class));
-        LogUtilities.info(this.getClass().getName(), "[srvc][auth][login][end][" + userName.toUpperCase() + "][" + token + "][successful]");
-        return new ResponseService(HttpStatus.OK.value(), null, this.getLoginDTO()).getResponse();
+    private ResponseDTO doGenerate(String username) {
+        try {
+            User user = userRepository.findByUsername(username);
+            String token = jwtTokenProvider.createToken(username, user.getRoles());
+            LogUtilities.info(this.getClass().getName(), "[srvc][auth][generate.token][end][" + username + "][" + token + "][successful]");
+            return new ResponseService(HttpStatus.OK.value(), null, new LoginDTO(token, user)).getResponse();
+        } catch (Exception ex) {
+            LogUtilities.fatal(this.getClass().getName(), "[srvc][auth][generate.token][unknown][" + ex.getMessage() + "]", ex);
+            throw ex;
+        }
     }
 
-    /**
-     * Invalid.Credentials.Expired
-     **/
-
-    private ResponseDTO error(String userName) {
-        this.doValueClean();
-        this.getErrorDTO().setErrorDesc(Desc.USERNAME_PASSWORD_INVALID);
-
-        LogUtilities.info(this.getClass().getName(), "[srvc][auth][login][end][" + userName.toUpperCase() + "][unsuccessful]");
-        return new ResponseService(HttpStatus.UNAUTHORIZED.value(), null, this.getErrorDTO()).getError();
-    }
-
-    /**
-     * Getter.Setter
-     **/
-
-    public ModelMapper getModelMapper() {
-        return modelMapper;
-    }
-
-    public void setModelMapper(ModelMapper modelMapper) {
-        this.modelMapper = modelMapper;
-    }
-
-    public LoginDTO getLoginDTO() {
-        return loginDTO;
-    }
-
-    public void setLoginDTO(LoginDTO loginDTO) {
-        this.loginDTO = loginDTO;
-    }
-
-    public ErrorDTO getErrorDTO() {
-        return errorDTO;
-    }
-
-    public void setErrorDTO(ErrorDTO errorDTO) {
-        this.errorDTO = errorDTO;
-    }
-
-    /**
-     * do.Clean.Value
-     **/
-
-    private void doValueClean() {
-        this.setLoginDTO(null);
-        this.setErrorDTO(null);
-    }
 }

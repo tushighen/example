@@ -10,6 +10,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class ValidationService {
 
+    /**
+     * do.Validate.Password
+     **/
+
     public boolean doValidatePassword(String password) {
         return StringUtils.isNotBlank(password) && password.length() > 4;
     }

@@ -13,7 +13,9 @@ public class SuccessDTO implements IGeneralDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String message;
 
-    /** Getter.Setter **/
+    /**
+     * Getter.Setter
+     **/
 
     public String getMessage() {
         return message;

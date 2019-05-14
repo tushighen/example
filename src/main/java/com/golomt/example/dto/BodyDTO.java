@@ -21,7 +21,9 @@ public class BodyDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Object success;
 
-    /** Constructor **/
+    /**
+     * Constructor
+     **/
 
     public BodyDTO() {
         super();
@@ -36,7 +38,9 @@ public class BodyDTO {
         this.error = error;
     }
 
-    /** Getter.Setter **/
+    /**
+     * Getter.Setter
+     **/
 
     public Object getResponse() {
         return response;

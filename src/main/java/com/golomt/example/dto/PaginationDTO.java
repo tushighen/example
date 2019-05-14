@@ -28,14 +28,18 @@ public class PaginationDTO implements IGeneralDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private long totalElements;
 
-    /** Push **/
+    /**
+     * Push
+     **/
 
     public void pushToContent(Object object) {
         this.content = this.content != null ? this.content : new ArrayList<>();
         this.content.add(object);
     }
 
-    /** Getter.Setter **/
+    /**
+     * Getter.Setter
+     **/
 
     public List<Object> getContent() {
         return content;
